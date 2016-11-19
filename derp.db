@@ -1,4 +1,5 @@
 :- dynamic notification/4.
 
 notification("1", "subjecctt", "booooty", "false").
+notification("iCMRAjWw", "subjecctt", "booooty", "false").
 

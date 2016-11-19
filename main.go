@@ -40,10 +40,11 @@ func main() {
 		log.Fatal(err)
 	}
 
-	err = stdNotificationDb.add("subjecctt", "booooty")
+	id, err := stdNotificationDb.add("subjecctt", "booooty")
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Debug("New id assigned: %v", id)
 
 	err = server.ListenAndServe()
 	if err != nil {

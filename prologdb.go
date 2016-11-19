@@ -33,13 +33,21 @@ type Predicate struct {
 	arity int
 }
 
+func nonUnderscoreQuoted(s string) string {
+	if s == "_" {
+		return s
+	} else {
+		return "\"" + s + "\""
+	}
+}
+
 func ToPredicateString(head string, params []string) string {
 	answer := head + "("
 	for i, p := range params {
 		if i == len(params)-1 {
-			answer = answer + "\"" + p + "\")"
+			answer = answer + nonUnderscoreQuoted(p)
 		} else {
-			answer = answer + "\"" + p + "\", "
+			answer = answer + nonUnderscoreQuoted(p) + ", "
 		}
 	}
 	return answer

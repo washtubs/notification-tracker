@@ -17,6 +17,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"os"
@@ -33,40 +34,46 @@ type Predicate struct {
 	arity int
 }
 
-func nonUnderscoreQuoted(s string) string {
-	if s == "_" {
-		return s
-	} else {
-		return "\"" + s + "\""
-	}
-}
-
-func ToPredicateString(head string, params []string) string {
-	answer := head + "("
-	for i, p := range params {
-		if i == len(params)-1 {
-			answer = answer + nonUnderscoreQuoted(p)
-		} else {
-			answer = answer + nonUnderscoreQuoted(p) + ", "
-		}
-	}
-	return answer
-}
-
 func (p Predicate) String() string {
 	return p.name + "/" + strconv.Itoa(p.arity)
 }
 
-type query struct {
-	query     string
+type Query struct {
+	head      string
+	params    []string
 	variables []string
+}
+
+func (q *Query) withHead(s string) *Query {
+	q.head = s
+	return q
+}
+
+func (q *Query) underscoreParam() *Query {
+	q.params = append(q.params, "_")
+	return q
+}
+
+func (q *Query) stringParam(s string) *Query {
+	q.params = append(q.params, "\""+s+"\"")
+	return q
+}
+
+func (q *Query) varParam(s string) *Query {
+	q.params = append(q.params, s)
+	q.variables = append(q.variables, s)
+	return q
+}
+
+func (q *Query) String() string {
+	return q.head + "(" + strings.Join(q.params, ",") + ")"
 }
 
 // A fully grounded predicate, one with no variables
 // used in insert and delete
 type Fact string
 
-type queryResult map[string]string
+type QueryResult map[string]string
 
 type prologDb struct {
 	file    string
@@ -123,14 +130,42 @@ func (db *prologDb) callAndReplace(toplevel string) error {
 		return err
 	}
 	defer file.Close()
+	log.Debug("writing to file")
 	buffer.WriteTo(file)
 	return err
 }
 
-func (db *prologDb) GetAll(q query) []queryResult {
+const DELIM = "|DELIM|"
+
+func makeFormatString(size int) string {
+	var fstring string
+	for i := 0; i < size-1; i++ {
+		fstring = fstring + "~w" + DELIM
+	}
+	fstring = fstring + "~w~n"
+	return fstring
+}
+
+func (db *prologDb) GetAll(q *Query) ([]QueryResult, error) {
 	db.dbMutex.Lock()
 	defer db.dbMutex.Unlock()
-	return nil
+	makeFormatString(len(q.variables))
+	toplevel := "forall(" + q.String() + ", format('" + makeFormatString(len(q.variables)) + "', [" + strings.Join(q.variables, ",") + "]))"
+	out, err := db.call(toplevel)
+	if err != nil {
+		return nil, err
+	}
+	sc := bufio.NewScanner(bufio.NewReader(out))
+	results := make([]QueryResult, 0)
+	for sc.Scan() {
+		r := make(QueryResult)
+		for i, value := range strings.Split(sc.Text(), DELIM) {
+			r[q.variables[i]] = value
+		}
+		results = append(results, r)
+	}
+
+	return results, nil
 }
 
 func (db *prologDb) allListings() string {

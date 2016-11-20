@@ -1,6 +1,7 @@
 :- dynamic notification/4.
 
-notification("lmSNUAfO", "subjecctt", "booooty", "false").
 notification("ByybKbsN", "subjecctt", "booooty", "false").
 notification("RnEDAAVU", "subjecctt", "booooty", "true").
+notification("lmSNUAfO", "subjecctt", "booooty", "true").
+notification("yBshZQfL", "subsub", "fsafsfafsa", "false").
 

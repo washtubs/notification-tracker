@@ -13,17 +13,27 @@ type notificationDb struct {
 	delegate *prologDb
 }
 
-type notification struct {
-	subject   string
-	body      string
-	dismissed bool
+type Notification struct {
+	Id        string `json:"id"`
+	Subject   string `json:"subject"`
+	Body      string `json:"body"`
+	Dismissed bool   `json:"dismissed"`
 }
 
-func notificationFromResult(result QueryResult) notification {
-	return notification{
+func notificationFromResult(result QueryResult, id string) Notification {
+	return Notification{
+		id,
 		result["Subject"],
 		result["Body"],
 		strToBool(result["Dismissed"]),
+	}
+}
+func notificationFromResultNonDismissed(result QueryResult) Notification {
+	return Notification{
+		result["Id"],
+		result["Subject"],
+		result["Body"],
+		false,
 	}
 }
 
@@ -52,7 +62,7 @@ func genUUID() string {
 	return randSeq(8)
 }
 
-func (db *notificationDb) add(n notification, id string) (string, error) {
+func (db *notificationDb) add(subject string, body string, id string, dismissed bool) (string, error) {
 	if id == "" {
 		id = genUUID()
 	}
@@ -60,9 +70,9 @@ func (db *notificationDb) add(n notification, id string) (string, error) {
 	query.
 		withHead("notification").
 		stringParam(id).
-		stringParam(n.subject).
-		stringParam(n.body).
-		stringParam(boolToStr(n.dismissed))
+		stringParam(subject).
+		stringParam(body).
+		stringParam(boolToStr(dismissed))
 
 	f := Fact(query.String())
 	return id, db.delegate.Insert(f)
@@ -84,7 +94,7 @@ func strToBool(s string) bool {
 	}
 }
 
-func (db *notificationDb) getById(id string) (notification, error) {
+func (db *notificationDb) getById(id string) (Notification, error) {
 	//db.delegate.GetAll(q)
 	query := new(Query)
 	query.
@@ -95,13 +105,33 @@ func (db *notificationDb) getById(id string) (notification, error) {
 		varParam("Dismissed")
 	results, err := db.delegate.GetAll(query)
 	if err != nil {
-		return notification{}, err
+		return Notification{}, err
 	}
 	if len(results) != 1 {
-		return notification{}, errors.New("Expected exactly one result: got " + strconv.Itoa(len(results)))
+		return Notification{}, errors.New("Expected exactly one result: got " + strconv.Itoa(len(results)))
 	} else {
-		return notificationFromResult(results[0]), nil
+		return notificationFromResult(results[0], id), nil
 	}
+}
+
+func (db *notificationDb) listNonDismissed() ([]Notification, error) {
+	query := new(Query)
+	query.
+		withHead("notification").
+		varParam("Id").
+		varParam("Subject").
+		varParam("Body").
+		stringParam(boolToStr(false))
+	results, err := db.delegate.GetAll(query)
+	if err != nil {
+		return nil, err
+	}
+	notifications := make([]Notification, 0)
+	for _, result := range results {
+		notif := notificationFromResultNonDismissed(result)
+		notifications = append(notifications, notif)
+	}
+	return notifications, nil
 }
 
 func (db *notificationDb) markDismissed(id string, dismissed bool) error {
@@ -123,8 +153,7 @@ func (db *notificationDb) markDismissed(id string, dismissed bool) error {
 		return err
 	}
 
-	notif.dismissed = dismissed
-	_, err = db.add(notif, id)
+	_, err = db.add(notif.Subject, notif.Body, id, dismissed)
 	if err != nil {
 		return err
 	}

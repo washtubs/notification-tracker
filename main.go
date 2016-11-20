@@ -26,7 +26,9 @@ func main() {
 	stdConfig = createNodeConfig(*port, *db)
 
 	mux := http.NewServeMux()
-	//mux.HandleFunc("/upload", handleUpload)
+	mux.HandleFunc("/new", handleNew)
+	mux.HandleFunc("/dismiss/", handleDismiss)
+	mux.HandleFunc("/list", handleList)
 
 	server := http.Server{
 		Addr:    ":" + strconv.Itoa(stdConfig.port),

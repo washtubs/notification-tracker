@@ -42,24 +42,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	//id, err := stdNotificationDb.add("subjecctt", "booooty")
-	//if err != nil {
-	//log.Fatal(err)
-	//}
-	//log.Debugf("New id assigned: %v", id)
-
-	n, err := stdNotificationDb.getById("RnEDAAVU")
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Debugf("Got notification: %v", n)
-
-	err = stdNotificationDb.markDismissed("RnEDAAVU", true)
-	if err != nil {
-		log.Fatal(err)
-	}
-	log.Debug("Marked dismissed")
-
 	err = server.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)

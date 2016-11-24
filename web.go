@@ -16,10 +16,6 @@ var errorResp http.Response = http.Response{
 	StatusCode: 500,
 }
 
-var successResp http.Response = http.Response{
-	StatusCode: 200,
-}
-
 func handleNew(w http.ResponseWriter, req *http.Request) {
 	if req.Method != "POST" {
 		forbiddenResp.Write(w)
@@ -28,15 +24,14 @@ func handleNew(w http.ResponseWriter, req *http.Request) {
 	subject := req.FormValue("subject")
 	body := req.FormValue("body")
 
-	_, err := stdNotificationDb.add(subject, body, "", false)
+	id, err := stdNotificationDb.add(subject, body, "", false)
 	if err != nil {
 		log.Error(err)
 		errorResp.Write(w)
 		return
 	}
 
-	successResp.Write(w)
-
+	w.Write([]byte(id))
 }
 
 func handleDismiss(w http.ResponseWriter, req *http.Request) {

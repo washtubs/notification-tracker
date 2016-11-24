@@ -92,6 +92,9 @@ func send(host string, subject string, body string) {
 		panic("Status code: " + strconv.Itoa(resp.StatusCode) + " " + resp.Status)
 	}
 
+	defer resp.Body.Close()
+	io.Copy(os.Stdout, resp.Body)
+
 }
 
 func list(host string, dismissed bool) {
